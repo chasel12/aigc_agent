@@ -1,0 +1,135 @@
+name: 169_cinematic_drama
+version: "1.1"
+description: >
+  16:9横屏电影感AI短剧流水线（支持即梦中转站/通义万相双图像引擎）。
+  适配B站长视频横版短剧，电影化镜头语言；依靠多机位多角度静帧剪辑弥补无I2V短板，
+  内置全局关闭KenBurns运镜，最大程度杜绝幻灯片廉价效果。
+  静态镜头最长3秒，每25秒内安排一次情绪节拍推进。
+category: cinematic
+stability: beta
+
+rules:
+  forbid_ken_burns_fallback: true
+  max_static_shot_seconds: 3
+  aspect_ratio: "16:9"
+  resolution: "1920x1080"
+
+orchestration:
+  mode: executive-producer
+  skill: pipelines/cinematic-169/executive-producer
+  budget_default_usd: 3.00
+  max_revisions_per_stage: 3
+  max_send_backs: 3
+  max_wall_time_minutes: 15
+
+extensions:
+  custom_scripts: true
+  custom_playbooks: true
+  custom_skills: true
+  custom_tools: false
+
+required_skills:
+  - pipelines/cinematic-169/executive-producer
+  - pipelines/cinematic-169/script-director
+  - pipelines/cinematic-169/scene-director
+  - pipelines/cinematic-169/asset-director
+  - pipelines/cinematic-169/edit-director
+  - pipelines/cinematic-169/compose-director
+  - meta/reviewer
+  - meta/checkpoint-protocol
+
+stages:
+  - name: script
+    skill: pipelines/cinematic-169/script-director
+    produces:
+      - script
+    tools_available: []
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - 三幕式结构完整：铺垫→冲突→转折→代价→悬念
+      - 角色对白简洁有力，单句不超过15字
+      - 情绪节拍每25秒内推进一次
+      - 开场5秒建立核心钩子
+    success_criteria:
+      - 结构化JSON剧本，包含角色ID、情绪标签、场景基调
+
+  - name: scene_plan
+    skill: pipelines/cinematic-169/scene-director
+    required_artifacts_in:
+      - script
+    produces:
+      - scene_plan
+    tools_available:
+      - jimeng_image
+      - dashscope_image
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - 每场对话至少拆分≥3组机位：说话人+对方反应特写+物品细节镜头
+      - 景别配比：中景 > 过肩镜头 > 近景特写，合理穿插环境空镜
+      - 标注镜头运动：缓慢横移 / 缓慢推近 / 轻微上下摇 / 亚像素呼吸抖动
+      - 遵循影视三分构图，人物预留画面呼吸空间
+    success_criteria:
+      - 结构化JSON分镜清单：镜号/时长≤3s/景别/机位/角色ID/台词/正负提示词/预设运镜
+
+  - name: assets
+    skill: pipelines/cinematic-169/asset-director
+    required_artifacts_in:
+      - scene_plan
+    produces:
+      - asset_manifest
+    tools_available:
+      - jimeng_image
+      - dashscope_image
+    required_tools: []
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - 全部画面16:9宽银幕构图，分辨率1920×1080
+      - 提示词前置电影感构图描述
+      - 固定负面提示词，规避畸形、裁切、竖构图
+      - 同一角色五官、服装保持统一，强制携带角色参考图
+      - 统一全片光影色调风格
+    success_criteria:
+      - 素材全部生成完成；人物崩坏画面自动重试一次
+
+  - name: edit
+    skill: pipelines/cinematic-169/edit-director
+    required_artifacts_in:
+      - scene_plan
+      - asset_manifest
+    produces:
+      - edit_decisions
+    tools_available: []
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - 不同景别交替，禁止同景别镜头连续堆砌
+      - 转场优先硬切，情绪节点少量叠化
+      - 单镜头时长严格控制0.8~3秒
+      - 继承分镜预设运镜参数写入剪辑指令
+    success_criteria:
+      - 完整剪辑决策表，携带运镜配置
+
+  - name: compose
+    skill: pipelines/cinematic-169/compose-director
+    required_artifacts_in:
+      - edit_decisions
+      - asset_manifest
+    produces:
+      - render_report
+    required_tools:
+      - video_compose
+    tools_available:
+      - video_compose
+      - subtitle_gen
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - 画面比例锁定16:9，分辨率1920×1080
+      - 字幕底部居中，不遮挡人物表演区域
+      - 执行剪辑定义的轻微运镜，禁止自动全局缩放
+      - 输出标准mp4
+    success_criteria:
+      - 成片生成，ffprobe校验分辨率与比例正常

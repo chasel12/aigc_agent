@@ -1,0 +1,69 @@
+# === Secrets ===
+.env
+.env.local
+*.key
+*.pem
+
+# === Python ===
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# === Node ===
+node_modules/
+package-lock.json
+bun.lock
+
+# === Large media (keep repo lean) ===
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.mp3
+*.wav
+*.flac
+*.aac
+*.m4a
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.svg
+*.ico
+
+# === OpenMontage internals ===
+OpenMontage-main.zip
+OpenMontage/projects/
+OpenMontage/backlot/data/
+OpenMontage/.venv/
+OpenMontage/node_modules/
+OpenMontage/remotion-composer/node_modules/
+OpenMontage/.claude/
+OpenMontage/.codex/
+OpenMontage/.cursor/
+OpenMontage/.github/
+OpenMontage/ink-theater/
+OpenMontage/why-sky-blue/
+
+# === OS ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === OpenCode ===
+.opencode/node_modules/
+.opencode/package.json
+.opencode/package-lock.json
+.opencode/bun.lock
+
+# === Scratch ===
+**/tmp_*.py
+**/checkpoint_*.json
+**/events.jsonl
